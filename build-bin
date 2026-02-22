@@ -11,7 +11,7 @@ IFS=$'\n\t'
 BIN_DIR="./bin"
 declare -A APPS=(
     ["sshx"]="main.go"
-    ["sshx-stream"]="sshx-stream.go"
+    ["scpx"]="scpx.go"
     ["sshx-key"]="sshx-key.go"
 )
 

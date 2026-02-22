@@ -22,8 +22,8 @@ func fatal(msg string, err error) {
 func main() {
 	if len(os.Args) != 5 {
 		fmt.Println("Usage:")
-		fmt.Println("  sshx-stream push user@host:port <local_path> <remote_dir>")
-		fmt.Println("  sshx-stream pull user@host:port <remote_path> <local_dir>")
+		fmt.Println("  scpx push user@host:port <local_path> <remote_dir>")
+		fmt.Println("  scpx pull user@host:port <remote_path> <local_dir>")
 		os.Exit(1)
 	}
 
