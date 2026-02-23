@@ -124,7 +124,7 @@ fi
 
 # ---------------- Build Go Binaries ----------------
 
-echo "🚀 Building Go binaries..."
+echo "🚀 Building core binaries..."
 
 cd "$PROJECT_ROOT"
 run ./build-bin
