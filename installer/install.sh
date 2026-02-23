@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
-echo "🕒 $(date '+%A, %d %B %Y | %I:%M:%S %p')"
-# =========================================================
+
 # easy-ssh-dev — Production Dependency Installer
 # Linux + Proot Stable Edition
 # Version: 1.1
 # Author: Sumit
-# =========================================================
 
 set -Eeuo pipefail
 IFS=$'\n\t'
@@ -34,6 +32,7 @@ DRY_RUN=false
 AUTO_YES=false
 INSTALL_GUI=false
 INSTALL_BUILD=false
+INSTALL_CLI=false
 
 # ---------------- Usage ----------------
 
@@ -44,6 +43,7 @@ usage() {
   echo ""
   echo "  --gui           Install GTK + VTE GUI dependencies"
   echo "  --build         Install build tools"
+  echo "  --cli           Install minimal CLI dependencies (go, jq, ssh)"
   echo "  --dry-run       Show actions only"
   echo "  -y, --yes       Auto confirm"
   echo "  -h, --help      Show help"
@@ -55,6 +55,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --gui) INSTALL_GUI=true ;;
     --build) INSTALL_BUILD=true ;;
+    --cli) INSTALL_CLI=true ;;
     --dry-run) DRY_RUN=true ;;
     -y|--yes) AUTO_YES=true ;;
     -h|--help) usage; exit 0 ;;
@@ -85,6 +86,9 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo -e "${BLUE}🔧 easy-ssh-dev Dependency Installer v$VERSION${NC}"
 echo "Project Root: $PROJECT_ROOT"
+echo "========================================================="
+echo "Started: $(date '+%A, %d %B %Y | %I:%M:%S %p')"
+echo "========================================================="
 echo "----------------------------------------"
 
 # ---------------- OS Detect ----------------
@@ -170,28 +174,81 @@ debian)
   CORE=(golang-go python3 python3-venv python3-pip jq openssh-client)
   GUI=(libgtk-3-0 gir1.2-gtk-3.0 libvte-2.91-0 gir1.2-vte-2.91 python3-gi python3-gi-cairo)
   BUILD=(binutils build-essential)
+  CLI_PKGS=(golang-go jq openssh-client)
 ;;
 fedora)
   CORE=(golang python3 python3-pip jq openssh-clients)
   GUI=(gtk3 gtk3-devel vte291 vte291-devel gobject-introspection gobject-introspection-devel python3-gobject)
   BUILD=(gcc gcc-c++ make)
+  CLI_PKGS=(golang jq openssh-clients)
 ;;
 arch)
   CORE=(go python jq openssh)
   GUI=(gtk3 vte3 gobject-introspection python-gobject)
   BUILD=(base-devel)
+  CLI_PKGS=(go jq openssh)
 ;;
 alpine)
   CORE=(go python3 py3-pip jq openssh)
   GUI=(gtk+3.0 vte3 py3-gobject3)
   BUILD=(build-base)
+  CLI_PKGS=(go jq openssh)
 ;;
 termux)
   CORE=(go python jq openssh)
   GUI=()
   BUILD=(binutils)
+  CLI_PKGS=(go jq openssh)
 ;;
 esac
+
+# ---------------- CLI Install (Minimal Mode) ----------------
+
+if [[ "$INSTALL_CLI" == true ]]; then
+
+  echo "Checking CLI dependencies..."
+
+  NEED=false
+
+  if ! check_go; then
+    warn "Go >= ${GO_MIN_MAJOR}.${GO_MIN_MINOR} required"
+    NEED=true
+  fi
+
+  for cmd in jq ssh; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      warn "$cmd missing"
+      NEED=true
+    fi
+  done
+
+  if [[ "$NEED" == true ]]; then
+    warn "CLI dependencies missing"
+    confirm || exit 1
+    install_pkgs "${CLI_PKGS[@]}"
+  else
+    ok "CLI dependencies OK"
+  fi
+
+  echo ""
+  echo "----------------------------------------"
+  log "Triggering CLI build step..."
+
+  if [[ -f "$PROJECT_ROOT/app-build-install" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+      log "[DRY RUN] Would execute build script (CLI mode)"
+    else
+      bash "$PROJECT_ROOT/app-build-install" --cli || warn "Build step failed"
+    fi
+  else
+    warn "app-build-install not found — skipping"
+  fi
+
+  echo "----------------------------------------"
+  echo "Log file: $LOG_FILE"
+  ok "CLI INSTALLATION COMPLETED 🚀"
+  exit 0
+fi
 
 # ---------------- Core Install ----------------
 
