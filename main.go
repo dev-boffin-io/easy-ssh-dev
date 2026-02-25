@@ -152,7 +152,7 @@ func connect(user, host string, port int) {
 
 	if _, exists := m[keyStr]; !exists {
 
-		info("First time connecting — testing connection...")
+		info("First time connecting — checking key authentication...")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -162,31 +162,34 @@ func connect(user, host string, port int) {
 			"-o", "ConnectTimeout=5",
 			"-p", strconv.Itoa(port),
 			user+"@"+host,
-			"exit")
+			"exit",
+		)
 
 		if err := test.Run(); err != nil {
-			warn("Connection test failed — host not added to cache")
-			return
+
+			info("Key not installed — installing SSH key...")
+
+			copyCmd := exec.Command(
+				"ssh-copy-id",
+				"-i", key+".pub",
+				"-o", "StrictHostKeyChecking=no",
+				"-p", strconv.Itoa(port),
+				user+"@"+host,
+			)
+
+			copyCmd.Stdin = os.Stdin
+			copyCmd.Stdout = os.Stdout
+			copyCmd.Stderr = os.Stderr
+
+			if err := copyCmd.Run(); err != nil {
+				warn("Key copy failed — host not added to cache")
+				return
+			}
+
+			ok("Key copied successfully")
+		} else {
+			ok("Key authentication already working")
 		}
-
-		ok("Connection test successful")
-
-		copy := exec.Command("ssh-copy-id",
-			"-i", key+".pub",
-			"-o", "StrictHostKeyChecking=no",
-			"-p", strconv.Itoa(port),
-			user+"@"+host)
-
-		copy.Stdin = os.Stdin
-		copy.Stdout = os.Stdout
-		copy.Stderr = os.Stderr
-
-		if err := copy.Run(); err != nil {
-			warn("Key copy failed — host not added to cache")
-			return
-		}
-
-		ok("Key copied successfully")
 
 		m[keyStr] = Entry{user, host, port}
 		saveCache(m)
