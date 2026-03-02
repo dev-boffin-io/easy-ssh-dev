@@ -1,31 +1,84 @@
 # =========================================================
-# sshx Project Configuration
+# easy-ssh-dev Project Configuration
 # Author: Sumit
 # =========================================================
 
 [project]
-name = "sshx"
-version = "1.1"
+name        = "easy-ssh-dev"
+version     = "1.1"
 description = "Simple SSH Manager with CLI + GUI"
-author = "Sumit"
-license = "MIT"
+author      = "Sumit"
+license     = "MIT"
+
+# -------------------------
+# Directory Layout
+# -------------------------
 
 [paths]
-cache = "~/.ssh/sshx.json"
+src_dir     = "src/"
+bin_dir     = "bin/"
+build_dir   = "build/"
+gui_dir     = "gui/"
+installer   = "installer/install.sh"
+
+cache       = "~/.ssh/sshx.json"
 default_key = "~/.ssh/id_ed25519"
+fallback_key = "~/.ssh/id_rsa"
+
+# -------------------------
+# Binaries
+# -------------------------
+
+[binaries]
+sshx      = "bin/sshx"
+sshx_key  = "bin/sshx-key"
+sshx_cpy  = "bin/sshx-cpy"
+sshx_reset = "bin/sshx-reset"
+git_auth  = "bin/git-auth"
+scpx      = "bin/scpx"
+sshx_dev  = "sshx-dev"
+sshx_gui  = "gui/sshx-gui"
+
+# -------------------------
+# Dependencies
+# -------------------------
 
 [dependencies.required]
-ssh = "OpenSSH client"
-jq  = "JSON processor"
+go      = "1.20+"
+ssh     = "OpenSSH client (ssh, ssh-keygen, ssh-copy-id, scp)"
+jq      = "JSON processor"
 
 [dependencies.optional]
-fzf = "Interactive fuzzy finder (used for --menu)"
+fzf     = "Interactive fuzzy finder (used for --menu)"
+
+[dependencies.gui]
+python  = "3.8+"
+gtk     = "GTK 3.0 (libgtk-3-0 / gtk3)"
+vte     = "VTE 2.91 (libvte-2.91-0 / vte291)"
+gi      = "Python GObject Introspection (python3-gi)"
+
+# -------------------------
+# Features
+# -------------------------
 
 [features]
-auto_keygen = true
-auto_key_copy = true
-cache_enabled = true
-known_hosts_cleanup = true
+auto_keygen          = true    # Generate ed25519 key if missing
+auto_key_copy        = true    # Run ssh-copy-id on first connect
+cache_enabled        = true    # Save hosts to ~/.ssh/sshx.json
+known_hosts_cleanup  = true    # sshx-reset clears known_hosts
+ipv6_support         = true    # user@[::1]:port format
+injection_safe_copy  = true    # sshx-cpy escapes shell quotes
+syscall_exec         = true    # sshx connects via syscall.Exec (no subprocess)
 
-[gui]
-enabled = true
+[features.gui]
+enabled     = true
+framework   = "GTK3 + VTE 2.91"
+tabbed      = true             # Each command opens in a new terminal tab
+right_click = true             # Copy / Paste / Select All context menu
+
+# -------------------------
+# Supported OS
+# -------------------------
+
+[os]
+supported = ["debian", "ubuntu", "fedora", "arch", "alpine", "termux"]
