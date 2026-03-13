@@ -146,6 +146,12 @@ func execSSH(user, host string, port int) {
 	syscall.Exec(binary, args, os.Environ())
 }
 
+// --raw: cache ছাড়া সরাসরি ssh -p <port> <user@host>
+func rawConnect(user, host string, port int) {
+	info("Raw connect (no cache) → " + user + "@" + host + ":" + strconv.Itoa(port))
+	execSSH(user, host, port)
+}
+
 func connect(user, host string, port int) {
 	m := loadCache()
 	keyStr := fmt.Sprintf("%s@%s:%d", user, host, port)
@@ -272,6 +278,7 @@ USAGE:
   sshx user@ip:port
   sshx user@[ipv6]:port
   sshx user@ip:port --remove
+  sshx --raw user@ip:port
 
 OTHER:
   sshx --list
@@ -319,6 +326,12 @@ func main() {
 		fzfMenu()
 	case "--doctor":
 		doctor()
+	case "--raw":
+		if len(os.Args) < 3 {
+			die("Usage: sshx --raw user@ip:port")
+		}
+		user, host, port := parse(os.Args[2])
+		rawConnect(user, host, port)
 	default:
 		user, host, port := parse(os.Args[1])
 		if len(os.Args) > 2 && os.Args[2] == "--remove" {

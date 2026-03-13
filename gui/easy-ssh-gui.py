@@ -157,6 +157,11 @@ radiobutton label {
     font-size: 17px;
 }
 
+checkbutton label {
+    color: #cdd6f4;
+    font-size: 17px;
+}
+
 /* Tab close button */
 #tab_close_btn {
     background: transparent;
@@ -172,7 +177,6 @@ radiobutton label {
     color: #1e1e2e;
     border-radius: 4px;
 }
-
 
 scrollbar slider {
     background-color: #45475a;
@@ -252,13 +256,13 @@ class TerminalTab(Gtk.Box):
             Vte.PtyFlags.DEFAULT,
             os.environ.get("HOME", os.path.expanduser("~")),
             argv,
-            None,                          # FIX: inherit full environment
-            GLib.SpawnFlags.SEARCH_PATH,   # FIX: search PATH for binaries
+            None,
+            GLib.SpawnFlags.SEARCH_PATH,
             None,
             None,
             -1,
             None,
-            self._spawn_callback,          # FIX: error reporting
+            self._spawn_callback,
         )
 
     def _spawn_callback(self, terminal, pid, error):
@@ -355,8 +359,6 @@ class SSHXGUI(Gtk.Window):
         self.add_btn(toolbar, "SSHX Reset",       lambda b: self.run_cmd([SSHX_RESET], "Reset"))
         self.add_btn(toolbar, "SCPX",             self.scpx_popup)
 
-
-
         # Open a default shell tab on startup
         self.new_tab(None, "Terminal", pinned=True)
 
@@ -408,11 +410,46 @@ class SSHXGUI(Gtk.Window):
     # Popups
     # --------------------------------------------------
     def connect_popup(self, button):
-        self.simple_input_popup(
-            "Connect to SSHX",
-            "Enter target (user@host):",
-            lambda v: self.run_cmd([SSHX_BIN, v], v),
-        )
+        dialog = Gtk.Dialog(title="Connect to SSHX", transient_for=self, flags=0)
+        dialog.set_default_size(440, -1)
+        dialog.add_buttons("Cancel",  Gtk.ResponseType.CANCEL,
+                           "Connect", Gtk.ResponseType.OK)
+        dialog.set_default_response(Gtk.ResponseType.OK)
+
+        box = dialog.get_content_area()
+        box.set_spacing(10)
+        box.set_margin_start(16)
+        box.set_margin_end(16)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+
+        lbl = Gtk.Label(label="Enter target (user@host:port):")
+        lbl.set_xalign(0)
+        entry = Gtk.Entry()
+        entry.set_placeholder_text("user@host:22")
+        entry.set_activates_default(True)
+
+        # Raw mode checkbox
+        raw_check = Gtk.CheckButton(label="Raw mode  (ssh -p <port> <user@host>, skip cache)")
+
+        box.pack_start(lbl,       False, False, 0)
+        box.pack_start(entry,     False, False, 0)
+        box.pack_start(raw_check, False, False, 4)
+
+        dialog.show_all()
+        response = dialog.run()
+
+        if response == Gtk.ResponseType.OK:
+            value = entry.get_text().strip()
+            if value:
+                if raw_check.get_active():
+                    self.run_cmd([SSHX_BIN, "--raw", value], f"RAW {value}")
+                else:
+                    self.run_cmd([SSHX_BIN, value], value)
+            else:
+                self.show_error("Input cannot be empty.")
+
+        dialog.destroy()
 
     def gen_key_popup(self, button):
         self.simple_input_popup(
@@ -488,11 +525,11 @@ class SSHXGUI(Gtk.Window):
         box.pack_start(mode_box, False, False, 0)
 
         def make_row(lbl_text, placeholder):
-            row   = Gtk.Box(spacing=8)
-            lbl   = Gtk.Label(label=lbl_text)
+            row = Gtk.Box(spacing=8)
+            lbl = Gtk.Label(label=lbl_text)
             lbl.set_width_chars(14)
             lbl.set_xalign(0)
-            ent   = Gtk.Entry()
+            ent = Gtk.Entry()
             ent.set_placeholder_text(placeholder)
             row.pack_start(lbl, False, False, 0)
             row.pack_start(ent, True,  True,  0)
@@ -503,8 +540,8 @@ class SSHXGUI(Gtk.Window):
         remote_entry = make_row("Remote path:",    "/remote/dir/  or  /remote/file.txt")
 
         # Local path with File + Folder browse buttons
-        local_row  = Gtk.Box(spacing=8)
-        local_lbl  = Gtk.Label(label="Local path:")
+        local_row   = Gtk.Box(spacing=8)
+        local_lbl   = Gtk.Label(label="Local path:")
         local_lbl.set_width_chars(14)
         local_lbl.set_xalign(0)
         local_entry = Gtk.Entry()
@@ -525,7 +562,7 @@ class SSHXGUI(Gtk.Window):
             fc.destroy()
 
         file_btn.connect("clicked",   lambda b: browse(Gtk.FileChooserAction.OPEN))
-        folder_btn.connect("clicked", lambda b: browse(Gtk.FileChooserAction.SELECT_FOLDER))  # FIX
+        folder_btn.connect("clicked", lambda b: browse(Gtk.FileChooserAction.SELECT_FOLDER))
 
         local_row.pack_start(local_lbl,   False, False, 0)
         local_row.pack_start(local_entry, True,  True,  0)
