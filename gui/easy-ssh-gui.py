@@ -341,7 +341,7 @@ class SSHXGUI(Gtk.Window):
         # ---- Core Buttons ----
         self.add_btn(toolbar, "Connect", self.connect_popup)
         self.add_btn(toolbar, "List",    lambda b: self.run_cmd([SSHX_BIN, "--list"],    "List"))
-        self.add_btn(toolbar, "Doctor",  lambda b: self.run_cmd([SSHX_BIN, "--doctor"],  "Doctor"))
+        self.add_btn(toolbar, "Doctor",  self.show_doctor_dialog)
         self.add_btn(toolbar, "Version", lambda b: self.run_cmd([SSHX_BIN, "--version"], "Version"))
         self.add_btn(toolbar, "Help",    self.show_help_dialog)
 
@@ -449,6 +449,81 @@ class SSHXGUI(Gtk.Window):
             else:
                 self.show_error("Input cannot be empty.")
 
+        dialog.destroy()
+
+    def show_doctor_dialog(self, button):
+        BINARIES = [
+            ("sshx",       SSHX_BIN),
+            ("sshx-key",   SSHX_KEY),
+            ("sshx-cpy",   SSHX_CPY),
+            ("scpx",       SCPX_BIN),
+            ("git-auth",   GIT_AUTH),
+            ("sshx-reset", SSHX_RESET),
+        ]
+
+        SYS_DEPS = ["ssh", "ssh-copy-id", "ssh-keygen"]
+
+        lines = []
+        lines.append("━━━ Project Binaries ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+
+        all_ok = True
+        for name, path in BINARIES:
+            if os.path.isfile(path) and os.access(path, os.X_OK):
+                lines.append(f"  ✔  {name:<16}  {path}")
+            else:
+                lines.append(f"  ✘  {name:<16}  NOT FOUND — {path}")
+                all_ok = False
+
+        lines.append("")
+        lines.append("━━━ System Dependencies ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+
+        import shutil
+        for dep in SYS_DEPS:
+            found = shutil.which(dep)
+            if found:
+                lines.append(f"  ✔  {dep:<16}  {found}")
+            else:
+                lines.append(f"  ✘  {dep:<16}  not installed")
+                all_ok = False
+
+        lines.append("")
+        if all_ok:
+            lines.append("  ✔  All checks passed.")
+        else:
+            lines.append("  ✘  Some checks failed — rebuild or reinstall missing items.")
+
+        text = "\n".join(lines)
+
+        dialog = Gtk.Dialog(title="Doctor — System Check", transient_for=self, flags=0)
+        dialog.set_default_size(620, 400)
+        dialog.add_buttons("Close", Gtk.ResponseType.CLOSE)
+
+        box = dialog.get_content_area()
+        box.set_margin_start(16)
+        box.set_margin_end(16)
+        box.set_margin_top(12)
+        box.set_margin_bottom(12)
+
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_vexpand(True)
+
+        tv = Gtk.TextView()
+        tv.set_editable(False)
+        tv.set_cursor_visible(False)
+        tv.set_wrap_mode(Gtk.WrapMode.NONE)
+        tv.set_monospace(True)
+        tv.get_buffer().set_text(text)
+        tv.set_margin_start(8)
+        tv.set_margin_end(8)
+        tv.set_margin_top(8)
+        tv.set_margin_bottom(8)
+
+        scroll.add(tv)
+        box.pack_start(scroll, True, True, 0)
+
+        dialog.show_all()
+        dialog.run()
         dialog.destroy()
 
     def show_help_dialog(self, button):
