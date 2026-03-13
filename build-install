@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # =========================================================
-# easy-ssh-dev — Portable Clean Build Script
+# easy-ssh-dev — Portable Clean Build Installer Script
 # Author: Sumit
 # =========================================================
 
 set -Eeuo pipefail
-
 trap 'rc=$?; echo "❌ Error on line $LINENO. Exit code: $rc"; exit $rc' ERR
 
 IFS=$'\n\t'
@@ -66,11 +65,13 @@ LOG_FILE="$PROJECT_ROOT/install.log"
 
 # ---------------- Logging ----------------
 
+mkdir -p "$(dirname "$LOG_FILE")"
+: > "$LOG_FILE"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "========================================================="
-echo "  easy-ssh-dev — Build Script"
-echo "  Script  : app-build-install"
+echo "  easy-ssh-dev — Build Installer Script"
+echo "  Script  : build-install"
 echo "  Started : $(date '+%A, %d %B %Y | %I:%M:%S %p')"
 echo "  Mode    : $([ "$DRY_RUN" == true ] && echo 'DRY RUN' || echo 'LIVE') / $([ "$CLI_ONLY" == true ] && echo 'CLI ONLY' || echo 'CLI + GUI')"
 echo "  Project : $PROJECT_ROOT"
@@ -105,26 +106,42 @@ need() {
   }
 }
 
+need_file() {
+  [[ -x "$1" ]] || {
+    echo "❌ Missing or not executable: $1"
+    exit 1
+  }
+}
+
 echo "📦 Checking build dependencies..."
 
 need go
 
 echo "✅ Required dependencies found."
 
+# ---------------- Build Script Check ----------------
+
+need_file "$BUILD/build-bin"
+need_file "$BUILD/build-init"
+
+if [[ "$CLI_ONLY" == false ]]; then
+  need_file "$BUILD/build-gui"
+fi
+
 # ---------------- Build Go Binaries ----------------
 
 echo "🚀 Building core binaries..."
 
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT" || exit 1
 run "$BUILD/build-bin"
 run "$BUILD/build-init"
 
 # ---------------- GUI Build ----------------
 
 if [[ "$CLI_ONLY" == false ]]; then
-  echo "Starting GUI build..."
+  echo "🖥 Starting GUI build..."
   run "$BUILD/build-gui"
-  cd "$PROJECT_ROOT"
+  cd "$PROJECT_ROOT" || exit 1
 else
   echo "⏭ Skipping GUI build (--cli mode)"
 fi
@@ -175,23 +192,19 @@ for f in "${artifacts[@]}"; do
   run chmod +x "$f"
 done
 
-cd "$PROJECT_ROOT"
+cd "$PROJECT_ROOT" || exit 1
 
-if [[ "$DRY_RUN" == false ]]; then
-  if [[ -x "$PROJECT_ROOT/sshx-dev" ]]; then
-    run "$PROJECT_ROOT/sshx-dev" install
-  else
-    echo "❌ sshx-dev missing, cannot install."
-    exit 1
-  fi
-else
-  echo "➜ $PROJECT_ROOT/sshx-dev install"
-fi
+# ---------------- Build Complete ----------------
 
 echo ""
 if [[ "$CLI_ONLY" == false ]]; then
-  echo "✅ SSHX CLI + GUI installed successfully!"
+  echo "✅ Build completed successfully! (CLI + GUI)"
 else
-  echo "✅ SSHX CLI installed successfully!"
+  echo "✅ Build completed successfully! (CLI only)"
 fi
+
+echo ""
+echo "Next steps:"
+echo "  Install : make install"
+echo "  Run CLI : ./sshx-dev"
 echo ""

@@ -1,25 +1,66 @@
-# easy-ssh-dev — Simple SSH Manager
+# easy-ssh-dev
 
-A lightweight, portable SSH management toolkit for Linux with both CLI and GTK GUI support.  
-Written in **Go** (CLI tools) and **Python + GTK3** (GUI).
+> A lightweight, portable SSH management toolkit for Linux — CLI tools written in Go, GUI written in Python + GTK3 + VTE.
+
+easy-ssh-dev simplifies SSH workflows by automatically managing keys, caching hosts, and providing a full suite of CLI utilities. An optional GTK3 GUI frontend provides a tabbed terminal interface with all tools accessible from a toolbar.
+
+Designed to work on standard Linux desktops as well as ARM64/proot/Termux environments.
+
+---
+
+## Contents
+
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [CLI Tools](#cli-tools)
+- [GUI](#gui)
+- [Configuration](#configuration)
+- [Build Reference](#build-reference)
+- [License](#license)
 
 ---
 
 ## Features
 
-- **Smart SSH connection manager** — auto-installs SSH key on first connect, caches hosts in `~/.ssh/sshx.json`
-- **Raw connect mode** — direct `ssh -p <port> <user@host>` without cache or key-copy
-- **Auto key setup** — generates `ed25519` key if missing, auto-copies to remote via `ssh-copy-id`
-- **IPv4 & IPv6 support** — `user@host:port` and `user@[::1]:port` formats
-- **Interactive fuzzy menu** — `fzf`-powered host picker via `--menu`
-- **Secure file transfer** — `scpx` push/pull with recursive SCP, IPv4/IPv6 support
-- **GitHub SSH wizard** — `git-auth` guides full key setup interactively
-- **SSH environment cleanup** — `sshx-reset` safely removes junk, preserves identity keys
-- **GTK3 GUI** — tabbed terminal interface, Catppuccin Mocha theme, all tools accessible via toolbar
-- **GUI Doctor** — checks all project binaries and system dependencies from within the GUI
-- **OS-aware installer** — supports Debian/Ubuntu, Fedora, Arch, Alpine, Termux
-- **Makefile build system** — `make build`, `make cli`, `make deps`, `make clean`, etc.
-- **Dry-run & CLI-only** build modes
+### SSH Management
+
+- **Smart connect** — on first connection, tests key-based auth, installs key via `ssh-copy-id` if needed, then caches the host
+- **Raw connect** — bypass cache and key-copy entirely; connects directly via `ssh -p <port> <user@host>`
+- **Host cache** — all known hosts stored in `~/.ssh/sshx.json`, no manual config needed
+- **Auto key generation** — generates `ed25519` key if none exists
+- **IPv4 and IPv6** — supports `user@host:port` and `user@[::1]:port` formats
+- **Fuzzy host picker** — interactive `fzf`-powered menu via `sshx --menu`
+- **Zero subprocess overhead** — connects via `syscall.Exec`, replacing the current process
+
+### CLI Utilities
+
+| Binary | Description |
+|--------|-------------|
+| `sshx` | Smart SSH connection manager — connect, raw, list, menu, doctor, remove |
+| `sshx-key` | `ed25519` SSH key generator with SSH agent integration |
+| `sshx-cpy` | Injection-safe SSH public key installer for remote hosts |
+| `sshx-reset` | SSH environment cleanup — removes junk files, resets `known_hosts` |
+| `git-auth` | Interactive GitHub SSH authentication wizard |
+| `scpx` | Recursive SCP wrapper for push/pull file transfer |
+
+### GUI
+
+- GTK3 + VTE tabbed terminal interface
+- Catppuccin Mocha dark theme
+- Full toolbar with all CLI tools accessible as dialogs
+- SSH connect dialog with Raw mode checkbox
+- SCPX file transfer dialog with file/folder browser
+- Integrated Doctor — checks all project binaries and system dependencies at a glance
+
+### Build System
+
+- Makefile with grouped targets (`deps`, `build`, `install`, `clean`)
+- OS-aware dependency installer supporting 5 distro families
+- CLI-only or full CLI + GUI build modes
+- Dry-run simulation for all build operations
+- Portable scripts — works on standard Linux and ARM64/proot/Termux
 
 ---
 
@@ -28,70 +69,56 @@ Written in **Go** (CLI tools) and **Python + GTK3** (GUI).
 ```
 easy-ssh-dev/
 │
-├── 📁 bin/                        # Compiled binaries (build output)
-│   ├── sshx                       # Main SSH manager — connect, list, doctor, menu
-│   ├── sshx-key                   # SSH key generator (ed25519)
-│   ├── sshx-cpy                   # Copies SSH public key to a remote host
-│   ├── sshx-reset                 # Cleans ~/.ssh junk files, resets known_hosts
-│   ├── git-auth                   # GitHub SSH authentication verifier & setup wizard
-│   └── scpx                       # Secure file transfer (push/pull over SSH)
+├── bin/                        # Compiled CLI binaries (build output)
+│   ├── sshx                    # Main SSH manager
+│   ├── sshx-key                # SSH key generator
+│   ├── sshx-cpy                # SSH public key installer
+│   ├── sshx-reset              # SSH environment cleanup
+│   ├── git-auth                # GitHub SSH auth wizard
+│   └── scpx                    # Secure file transfer
 │
-├── 📁 src/                        # Go source files
-│   ├── main.go                    # sshx CLI — connect, raw, list, menu, doctor, remove
-│   ├── init.go                    # sshx-dev installer/uninstaller (symlinks, desktop entry)
-│   ├── sshx-key.go                # SSH key generation (ed25519 + ssh-agent)
-│   ├── sshx-cpy.go                # SSH public key installer (injection-safe)
-│   ├── sshx-reset.go              # SSH cleanup — removes *.old/*.tmp/*.bak, resets known_hosts
-│   ├── git-auth.go                # GitHub auth check, key setup wizard, browser launcher
-│   ├── scpx.go                    # SCP wrapper — recursive push/pull, IPv4/IPv6
-│   └── go.mod                     # Go module definition
+├── src/                        # Go source code
+│   ├── main.go                 # sshx — connect, raw, list, menu, doctor, remove
+│   ├── init.go                 # sshx-dev installer/uninstaller (symlinks, desktop entry)
+│   ├── sshx-key.go             # ed25519 key generation + SSH agent
+│   ├── sshx-cpy.go             # Injection-safe authorized_keys installer
+│   ├── sshx-reset.go           # SSH dir cleanup, known_hosts reset
+│   ├── git-auth.go             # GitHub auth check + interactive setup wizard
+│   ├── scpx.go                 # Recursive SCP push/pull, IPv4/IPv6
+│   └── go.mod
 │
-├── 📁 build/                      # Build scripts + assets
-│   ├── build-bin                  # Builds all Go binaries → bin/
-│   ├── build-init                 # Builds sshx-dev (installer runner)
-│   ├── build-gui                  # Builds GUI via PyInstaller → gui/sshx-gui
-│   ├── build-deps                 # OS-aware dependency installer
-│   └── ssh-terminal.png           # GUI icon asset
+├── gui/                        # GTK3 GUI frontend
+│   ├── easy-ssh-gui.py         # Python GTK3 + VTE tabbed terminal application
+│   ├── sshx-gui                # Compiled GUI binary (PyInstaller output)
+│   └── _internal/              # PyInstaller bundled runtime files
 │
-├── 📁 gui/                        # GTK GUI frontend
-│   ├── easy-ssh-gui.py            # Python GTK3 + VTE GUI with tabbed terminal
-│   ├── sshx-gui                   # Compiled GUI binary (PyInstaller output)
-│   └── _internal/                 # PyInstaller bundled runtime files
+├── build/                      # Build scripts and assets
+│   ├── build-bin               # Compiles all Go binaries → bin/
+│   ├── build-init              # Compiles sshx-dev installer runner
+│   ├── build-gui               # Builds GUI via PyInstaller → gui/
+│   ├── build-deps              # OS-aware dependency installer
+│   └── ssh-terminal.png        # GUI application icon
 │
-├── sshx-dev                       # Post-build installer runner (install / uninstall)
-├── app-build-install              # Master build + install script (--cli, --dry-run)
-├── Makefile                       # Build system (make build / cli / deps / clean / rebuild)
-├── sshx.toml                      # Project config file
-├── install.log                    # Auto-generated installation log
+├── build-install               # Main build + install orchestrator
+├── sshx-dev                    # Install/uninstall runner (symlinks to PATH)
+├── Makefile                    # Build system entry point
+├── sshx.toml                   # Project configuration
+├── install.log                 # Auto-generated build and install log
 ├── LICENSE
 └── README.md
 ```
-
-### Component Overview
-
-| Binary | Source | Location | Role |
-|--------|--------|----------|------|
-| `sshx` | `src/main.go` | `bin/` | Core SSH manager — connect, raw, list, menu, doctor, remove |
-| `sshx-key` | `src/sshx-key.go` | `bin/` | SSH ed25519 key generator |
-| `scpx` | `src/scpx.go` | `bin/` | Recursive push/pull file transfer over SSH |
-| `git-auth` | `src/git-auth.go` | `bin/` | GitHub SSH auth verifier + interactive setup wizard |
-| `sshx-cpy` | `src/sshx-cpy.go` | `bin/` | Injection-safe SSH public key installer |
-| `sshx-reset` | `src/sshx-reset.go` | `bin/` | SSH dir cleanup & known_hosts reset |
-| `sshx-gui` | `gui/easy-ssh-gui.py` | `gui/` | GTK3+VTE tabbed GUI terminal |
-| `build-deps` | `build/build-deps` | — | OS-aware dependency installer |
-| `app-build-install` | root | — | Full build + install orchestrator |
 
 ---
 
 ## Requirements
 
-### Core (required)
+### Core (required for CLI build)
 
-| Tool | Minimum Version | Purpose |
-|------|----------------|---------|
+| Tool | Version | Purpose |
+|------|---------|---------|
 | Go | 1.20+ | Build all CLI tools |
-| openssh | any | `ssh`, `ssh-keygen`, `ssh-copy-id`, `scp` |
-| jq | any | JSON processing |
+| OpenSSH | any | `ssh`, `scp`, `ssh-keygen`, `ssh-copy-id` |
+| jq | any | JSON host cache processing |
 
 ### Optional
 
@@ -101,213 +128,198 @@ easy-ssh-dev/
 
 ### GUI (optional)
 
-| Dependency | Package |
-|-----------|---------|
-| Python 3.8+ | `python3` |
-| GTK 3.0 | `libgtk-3-0` / `gtk3` |
-| VTE 2.91 | `libvte-2.91-0` / `vte291` |
-| Python GObject | `python3-gi` / `python3-gobject` |
+| Dependency | Minimum | Purpose |
+|-----------|---------|---------|
+| Python | 3.8+ | Runtime for GUI and PyInstaller build |
+| GTK | 3.0 | GUI toolkit |
+| VTE | 2.91 | Terminal widget |
+| python3-gi | any | Python GTK bindings (GObject introspection) |
 
 ---
 
 ## Installation
 
-### 1. Install Dependencies
+### Step 1 — Install Dependencies
+
+Use the OS-aware `build-deps` script or the Makefile shortcuts:
 
 ```bash
-# Install core + GUI dependencies
-bash build/build-deps --gui
-
-# Install core only
+# Core dependencies (Go, OpenSSH, jq)
 bash build/build-deps
 
-# Install CLI tools only (minimal — go, jq, ssh)
+# CLI tools only (minimal — go, jq, ssh)
 bash build/build-deps --cli
 
-# Install build tools (gcc, make, etc.)
+# Core + GTK/VTE GUI dependencies
+bash build/build-deps --gui
+
+# Core + build tools (gcc, make, binutils)
 bash build/build-deps --build
 
-# Preview changes without applying
-bash build/build-deps --dry-run
+# Everything at once, auto-confirm
+bash build/build-deps --gui --build -y
 
-# Auto-confirm all prompts
-bash build/build-deps -y
+# Preview all actions without applying
+bash build/build-deps --dry-run
 ```
 
-**Supported OS:** Debian/Ubuntu, Fedora, Arch, Alpine, Termux
+Makefile equivalents:
+
+```bash
+make deps          # core
+make deps-cli      # CLI only
+make deps-gui      # GUI dependencies
+make deps-build    # build tools
+make deps-all      # everything
+```
+
+**Supported systems:** Debian/Ubuntu · Fedora · Arch Linux · Alpine Linux · Termux (Android)
 
 ---
 
-### 2. Build & Install
-
-#### Using Makefile (recommended)
+### Step 2 — Build
 
 ```bash
-# Install dependencies
-make deps
-
-# Full build (CLI + GUI)
+# Full build — CLI tools + GUI binary
 make build
 
-# CLI only build (skip GUI)
+# CLI-only build — skip GUI
 make cli
 
-# Preview build without making changes
+# Simulate build without making any changes
 make dry-run
-
-# Install binaries (requires prebuilt sshx-dev)
-make install
-
-# Remove installation
-make uninstall
-
-# Remove all build artifacts
-make clean
-
-# Clean + rebuild
-make rebuild
 ```
 
-#### Direct
+Or run the build script directly:
 
 ```bash
-# Full build (CLI + GUI)
-./app-build-install
-
-# CLI only build (skip GUI)
-./app-build-install --cli
-
-# Dry run (preview only)
-./app-build-install --dry-run
+./build-install           # CLI + GUI
+./build-install --cli     # CLI only
+./build-install --dry-run # dry run
 ```
 
 ---
 
-## Usage
+### Step 3 — Install / Uninstall
+
+```bash
+# Symlink all binaries to /usr/local/bin (or ~/.local/bin on proot/termux)
+make install
+
+# Remove all installed symlinks
+make uninstall
+```
+
+---
+
+### Other Maintenance Targets
+
+```bash
+make clean      # Remove all build artifacts (bin/, gui/sshx-gui, gui/_internal)
+make rebuild    # clean + build
+```
+
+---
+
+## CLI Tools
 
 ### `sshx` — SSH Manager
 
+The primary tool. Manages SSH connections with automatic key setup and host caching.
+
 ```bash
-# Connect to a host (auto key-copy + cache)
-sshx user@ip:port
+sshx user@host:port          # Connect (auto key-copy + cache on first connect)
+sshx user@[::1]:port         # Connect via IPv6
 
-# Connect via IPv6
-sshx user@[::1]:port
+sshx --raw user@host:port    # Raw connect — skip cache and key-copy
+sshx user@host:port --remove # Remove host from cache and known_hosts
 
-# Raw connect — direct ssh, skip cache and key-copy
-sshx --raw user@ip:port
-
-# Remove a saved host from cache + known_hosts
-sshx user@ip:port --remove
-
-# List all saved hosts
-sshx --list
-
-# Interactive fuzzy menu (requires fzf)
-sshx --menu
-
-# Run diagnostics (checks ssh, fzf, key)
-sshx --doctor
-
-# Version info
+sshx --list                  # List all cached hosts
+sshx --menu                  # Interactive fuzzy picker (requires fzf)
+sshx --doctor                # Run diagnostics (ssh, fzf, key detection)
 sshx --version
-
-# Help
 sshx --help
 ```
 
-**How `sshx` works on first connect:**
+**First connect flow:**
 
-1. Checks if the host already exists in `~/.ssh/sshx.json`
+1. Checks `~/.ssh/sshx.json` for an existing entry
 2. If new — tests key-based auth with a 5-second timeout
-3. If key not installed — runs `ssh-copy-id` automatically (prompts for password once)
+3. If key is not installed — runs `ssh-copy-id` automatically (password prompted once)
 4. Saves the host to cache on success
-5. Connects via `ssh` using `syscall.Exec` (replaces the current process — zero subprocess overhead)
+5. Connects via `syscall.Exec` — replaces the current process with no subprocess overhead
 
-**Raw mode (`--raw`):** skips cache lookup, key-copy, and registration entirely. Connects directly via `ssh -p <port> <user@host>`.
-
-**Cache file:** `~/.ssh/sshx.json` — stores `user`, `host`, `port` per entry.
-
-**On `--remove`:** deletes the entry from cache and cleans the host from `known_hosts` via `ssh-keygen -R`.
+**Raw mode** skips steps 1–4 entirely and connects directly via `ssh -p <port> <user@host>`. Useful for hosts that should not be cached or where key-copy is not desired.
 
 ---
 
 ### `scpx` — Secure File Transfer
 
+Recursive SCP wrapper with IPv4/IPv6 support.
+
 ```bash
-# Push local file/folder to remote
+# Push local file or folder to remote
 scpx push user@host:port /local/path /remote/dir
 
-# Pull file/folder from remote
+# Pull file or folder from remote
 scpx pull user@host:port /remote/path /local/dir
 
-# IPv6 support
+# IPv6
 scpx push user@[::1]:port /local/file /remote/dir
 scpx pull user@[::1]:port /remote/file /local/dir
 ```
 
-**Notes:**
-- Wraps `scp -r` (recursive) under the hood
-- Auto-creates local destination directory on `pull`
-- Validates port range (1–65535) and host format before connecting
-- Supports both IPv4 and IPv6 targets
+Wraps `scp -r`. Auto-creates the local destination directory on `pull`. Validates host format and port range (1–65535) before connecting.
 
 ---
 
 ### `sshx-key` — Key Generation
 
 ```bash
-sshx-key your@email.com
+sshx-key email@example.com
 ```
 
-Generates an `ed25519` SSH key, adds it to the SSH agent, and copies the public key to clipboard.  
-Prints step-by-step instructions for adding the key to GitHub.
+Generates a new `ed25519` keypair, adds the private key to the SSH agent, and prints step-by-step instructions for adding the public key to GitHub or other services.
 
 ---
 
-### `git-auth` — GitHub SSH Auth Wizard
+### `git-auth` — GitHub SSH Wizard
 
 ```bash
 git-auth
 ```
 
-Interactive GitHub SSH authentication tool. It:
+Interactive wizard for setting up and verifying GitHub SSH authentication:
 
-1. Checks if your SSH key is authenticated with GitHub
-2. Detects existing local SSH keys (`~/.ssh/id_ed25519`, `~/.ssh/id_rsa`)
-3. Detects if SSH agent is running
-4. If auth fails — prompts to generate a new key via `sshx-key`
-5. Shows step-by-step instructions to add the key to GitHub
-6. Optionally opens `https://github.com/settings/keys` in your browser
-7. Re-verifies the connection after you add the key
+1. Tests SSH access to GitHub (`ssh -T git@github.com`)
+2. Detects existing local keys (`~/.ssh/id_ed25519`, `~/.ssh/id_rsa`)
+3. Checks SSH agent status
+4. If auth fails — offers to generate a new key via `sshx-key`
+5. Shows step-by-step instructions to add the key on GitHub
+6. Optionally opens `https://github.com/settings/keys` in the browser
+7. Re-verifies the connection after the key is added
 
 ---
 
-### `sshx-cpy` — Copy SSH Key to Remote Host
+### `sshx-cpy` — Copy Key to Remote Host
 
 ```bash
-# Standard usage
-sshx-cpy user@host:port
-
-# Default port (22) — port optional
-sshx-cpy user@host
-
-# IPv6
-sshx-cpy user@[::1]:port
+sshx-cpy user@host:port   # with port
+sshx-cpy user@host        # defaults to port 22
+sshx-cpy user@[::1]:port  # IPv6
 ```
 
-Installs your local SSH public key on a remote host for passwordless login.  
-More robust than `ssh-copy-id` — uses injection-safe key installation.
+Installs your local SSH public key on a remote host for passwordless login. More robust than `ssh-copy-id` — uses an injection-safe remote install script.
 
 **How it works:**
 
-1. Detects your private key automatically (`~/.ssh/id_ed25519` → `~/.ssh/id_rsa`)
-2. Reads the matching `.pub` file (or extracts via `ssh-keygen -y` if missing)
-3. Connects via SSH and runs a safe remote script that:
-   - Creates `~/.ssh/` with correct permissions (`700`)
-   - Creates `authorized_keys` with correct permissions (`600`)
-   - Appends your key **only if not already present** (no duplicates)
-4. Verifies passwordless login with `BatchMode=yes` after installation
+1. Detects private key automatically: `id_ed25519` → `id_rsa`
+2. Reads matching `.pub` file, or extracts it via `ssh-keygen -y` if missing
+3. Connects via SSH and runs a remote script that:
+   - Creates `~/.ssh/` with permissions `700`
+   - Creates `authorized_keys` with permissions `600`
+   - Appends the key only if not already present (no duplicates)
+4. Verifies passwordless login with `BatchMode=yes`
 5. Prints the exact `ssh` command to use on success
 
 ---
@@ -318,67 +330,72 @@ More robust than `ssh-copy-id` — uses injection-safe key installation.
 sshx-reset
 ```
 
-Safely cleans your `~/.ssh` directory:
+Safely cleans `~/.ssh`:
 
-- Removes junk files matching: `*.old`, `*.tmp`, `*.bak`, `known_hosts`
-- **Preserves** protected keys: `id_ed25519`, `id_ed25519.pub`, `authorized_keys`
-- Resets `known_hosts` to an empty file (permissions `600`)
-- Prints a full report of what was removed and what was preserved
+- **Removes:** files matching `*.old`, `*.tmp`, `*.bak`, and `known_hosts`
+- **Preserves:** `id_ed25519`, `id_ed25519.pub`, `authorized_keys`
+- **Resets:** `known_hosts` to an empty file with permissions `600`
+- **Reports:** a full summary of what was removed and what was preserved
 
 ---
 
 ## GUI
 
-Launch the GTK GUI:
+### Launch
 
 ```bash
-sshx-gui
-# or directly:
-python3 gui/easy-ssh-gui.py
+sshx-gui                       # Compiled binary
+python3 gui/easy-ssh-gui.py    # Run directly from source
 ```
 
-**Toolbar buttons:**
+### Toolbar Reference
 
 | Button | Action |
 |--------|--------|
-| Connect | SSH connect popup — supports Raw mode checkbox |
-| List | List all saved hosts |
-| Doctor | Check all binaries and system dependencies |
-| Version | Show version info |
-| Help | Show full command reference for all tools |
-| Gen Key | Generate SSH key by email |
-| Copy Fingerprint | Show public key fingerprint |
-| Git Auth | Verify GitHub SSH authentication |
-| SSHX Copy | Copy SSH public key to remote host |
-| SSHX Reset | Clean SSH environment |
-| SCPX | File transfer dialog (push/pull, file/folder browse) |
+| **Connect** | SSH connect dialog — enter `user@host:port`, optionally enable Raw mode |
+| **List** | Show all cached hosts in a new terminal tab |
+| **Doctor** | Open system check dialog — binary and dependency status |
+| **Version** | Show version info in a new terminal tab |
+| **Help** | Open command reference dialog for all tools |
+| **Gen Key** | Generate SSH key — enter email in dialog |
+| **Copy Fingerprint** | Show SSH public key fingerprint in a new tab |
+| **Git Auth** | Run GitHub SSH authentication wizard |
+| **SSHX Copy** | Copy SSH key to remote — enter host in dialog |
+| **SSHX Reset** | Clean SSH environment |
+| **SCPX** | File transfer dialog — push/pull with file and folder browser |
 
-Each action opens in a **new terminal tab** inside the GUI.  
-The pinned **Terminal** tab is always open on startup.
+Each toolbar action opens its output in a **new terminal tab**. A pinned **Terminal** tab is always open on startup and cannot be closed.
 
-**Connect popup — Raw mode:**  
-Check "Raw mode" to connect directly via `ssh -p <port> <user@host>` without cache or key-copy.
+### Connect Dialog — Raw Mode
 
-**Doctor dialog:**  
-Checks all project binaries (`sshx`, `sshx-key`, `sshx-cpy`, `scpx`, `git-auth`, `sshx-reset`, `sshx-gui`) and system dependencies (`ssh`, `ssh-copy-id`, `ssh-keygen`). Reports path and status for each.
+The connect dialog includes a **Raw mode** checkbox. When enabled, the connection bypasses the host cache and key-copy entirely and connects via `ssh -p <port> <user@host>` directly.
 
-**Keyboard shortcuts (inside terminal tabs):**
+### Doctor Dialog
+
+Checks and reports the status of:
+
+- **Project binaries:** `sshx`, `sshx-key`, `sshx-cpy`, `scpx`, `git-auth`, `sshx-reset`, `sshx-gui`
+- **System dependencies:** `ssh`, `ssh-copy-id`, `ssh-keygen`
+
+Each entry shows its full resolved path and a pass/fail status.
+
+### Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl+Shift+C` | Copy |
+| `Ctrl+Shift+C` | Copy selection |
 | `Ctrl+Shift+V` | Paste |
-| `Ctrl+Shift+A` | Select All |
+| `Ctrl+Shift+A` | Select all |
 
-Right-click menu also supports Copy, Paste, and Select All.
+Right-click context menu provides the same actions.
 
 ---
 
 ## Configuration
 
-### `~/.ssh/sshx.json` — Host Cache (auto-managed)
+### `~/.ssh/sshx.json` — Host Cache
 
-Stores all registered SSH hosts. Created automatically on first use. Format:
+Automatically created and managed by `sshx`. Stores known SSH hosts by connection string.
 
 ```json
 {
@@ -390,20 +407,56 @@ Stores all registered SSH hosts. Created automatically on first use. Format:
 }
 ```
 
-Managed entirely by `sshx` — do not edit manually unless necessary.
+Do not edit manually unless necessary. Use `sshx user@host:port --remove` to remove entries.
 
-### `sshx.toml` — Project Config
-
-Located in the project root. Used during build and installation.
-
-### `~/.ssh/` — SSH Directory
+### `~/.ssh/` — Key Files
 
 | File | Role |
 |------|------|
-| `id_ed25519` | Private key (auto-generated if missing) |
-| `id_ed25519.pub` | Public key (copied to remotes on first connect) |
-| `known_hosts` | Remote host fingerprints (cleared by `sshx-reset`) |
+| `id_ed25519` | Private key — auto-generated by `sshx` or `sshx-key` if missing |
+| `id_ed25519.pub` | Public key — copied to remote hosts on first connect |
+| `known_hosts` | Remote host fingerprints — reset by `sshx-reset` |
 | `sshx.json` | Host cache used by `sshx` |
+
+### `sshx.toml`
+
+Project configuration file located at the project root. Used during build and install.
+
+### `install.log`
+
+Auto-generated log file. All build and install script output is appended here.  
+Located at the project root.
+
+---
+
+## Build Reference
+
+### Makefile Targets
+
+| Target | Description |
+|--------|-------------|
+| `make deps` | Install core dependencies |
+| `make deps-cli` | Install CLI-only dependencies |
+| `make deps-gui` | Install GTK/VTE GUI dependencies |
+| `make deps-build` | Install build tools (gcc, make, etc.) |
+| `make deps-all` | Install all dependencies |
+| `make build` | Full build — CLI + GUI |
+| `make cli` | CLI-only build |
+| `make dry-run` | Simulate build without changes |
+| `make install` | Install binaries (requires prebuilt `sshx-dev`) |
+| `make uninstall` | Remove installed binaries |
+| `make clean` | Remove all build artifacts |
+| `make rebuild` | `clean` + `build` |
+
+### Build Scripts
+
+| Script | Description |
+|--------|-------------|
+| `build-install` | Main orchestrator — runs all build steps, verifies artifacts, runs install |
+| `build/build-bin` | Compiles all Go binaries with `CGO_ENABLED=0 -trimpath -ldflags="-s -w"` |
+| `build/build-init` | Compiles `sshx-dev` installer runner |
+| `build/build-gui` | Sets up venv, installs PyInstaller, builds `sshx-gui` binary |
+| `build/build-deps` | Detects OS, installs required packages |
 
 ---
 

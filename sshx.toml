@@ -6,23 +6,27 @@
 [project]
 name        = "easy-ssh-dev"
 version     = "1.1"
-description = "Simple SSH Manager with CLI + GUI"
+description = "Lightweight portable SSH management toolkit — CLI + GTK3 GUI"
 author      = "Sumit"
 license     = "MIT"
+repository  = "https://github.com/dev-boffin-io/easy-ssh-dev"
 
 # -------------------------
 # Directory Layout
 # -------------------------
 
 [paths]
-src_dir     = "src/"
-bin_dir     = "bin/"
-build_dir   = "build/"
-gui_dir     = "gui/"
-installer   = "installer/install.sh"
+src_dir    = "src/"
+bin_dir    = "bin/"
+build_dir  = "build/"
+gui_dir    = "gui/"
 
-cache       = "~/.ssh/sshx.json"
-default_key = "~/.ssh/id_ed25519"
+build_script = "build-install"
+installer    = "build/build-deps"
+log_file     = "install.log"
+
+cache        = "~/.ssh/sshx.json"
+default_key  = "~/.ssh/id_ed25519"
 fallback_key = "~/.ssh/id_rsa"
 
 # -------------------------
@@ -30,51 +34,67 @@ fallback_key = "~/.ssh/id_rsa"
 # -------------------------
 
 [binaries]
-sshx      = "bin/sshx"
-sshx_key  = "bin/sshx-key"
-sshx_cpy  = "bin/sshx-cpy"
+sshx       = "bin/sshx"
+sshx_key   = "bin/sshx-key"
+sshx_cpy   = "bin/sshx-cpy"
 sshx_reset = "bin/sshx-reset"
-git_auth  = "bin/git-auth"
-scpx      = "bin/scpx"
-sshx_dev  = "sshx-dev"
-sshx_gui  = "gui/sshx-gui"
+git_auth   = "bin/git-auth"
+scpx       = "bin/scpx"
+sshx_dev   = "sshx-dev"
+sshx_gui   = "gui/sshx-gui"
+
+# -------------------------
+# Build Scripts
+# -------------------------
+
+[build]
+build_bin  = "build/build-bin"
+build_init = "build/build-init"
+build_gui  = "build/build-gui"
+build_deps = "build/build-deps"
+icon       = "build/ssh-terminal.png"
 
 # -------------------------
 # Dependencies
 # -------------------------
 
 [dependencies.required]
-go      = "1.20+"
-ssh     = "OpenSSH client (ssh, ssh-keygen, ssh-copy-id, scp)"
-jq      = "JSON processor"
+go  = "1.20+"
+ssh = "OpenSSH (ssh, ssh-keygen, ssh-copy-id, scp)"
+jq  = "JSON processor"
 
 [dependencies.optional]
-fzf     = "Interactive fuzzy finder (used for --menu)"
+fzf = "Interactive fuzzy finder — used by sshx --menu"
 
 [dependencies.gui]
-python  = "3.8+"
-gtk     = "GTK 3.0 (libgtk-3-0 / gtk3)"
-vte     = "VTE 2.91 (libvte-2.91-0 / vte291)"
-gi      = "Python GObject Introspection (python3-gi)"
+python = "3.8+"
+gtk    = "GTK 3.0  (libgtk-3-0 / gtk3)"
+vte    = "VTE 2.91 (libvte-2.91-0 / vte291)"
+gi     = "Python GObject Introspection (python3-gi)"
 
 # -------------------------
 # Features
 # -------------------------
 
-[features]
-auto_keygen          = true    # Generate ed25519 key if missing
-auto_key_copy        = true    # Run ssh-copy-id on first connect
-cache_enabled        = true    # Save hosts to ~/.ssh/sshx.json
-known_hosts_cleanup  = true    # sshx-reset clears known_hosts
-ipv6_support         = true    # user@[::1]:port format
-injection_safe_copy  = true    # sshx-cpy escapes shell quotes
-syscall_exec         = true    # sshx connects via syscall.Exec (no subprocess)
+[features.cli]
+auto_keygen         = true   # Generate ed25519 key if missing
+auto_key_copy       = true   # Run ssh-copy-id on first connect
+raw_connect         = true   # --raw skips cache and key-copy entirely
+cache_enabled       = true   # Save hosts to ~/.ssh/sshx.json
+known_hosts_cleanup = true   # sshx-reset clears known_hosts
+ipv6_support        = true   # user@[::1]:port format
+injection_safe_copy = true   # sshx-cpy escapes shell quotes in authorized_keys
+syscall_exec        = true   # sshx connects via syscall.Exec (no subprocess overhead)
 
 [features.gui]
-enabled     = true
-framework   = "GTK3 + VTE 2.91"
-tabbed      = true             # Each command opens in a new terminal tab
-right_click = true             # Copy / Paste / Select All context menu
+enabled        = true
+framework      = "GTK3 + VTE 2.91"
+theme          = "Catppuccin Mocha"
+tabbed         = true   # Each command opens in a new terminal tab
+pinned_tab     = true   # Terminal tab always open on startup
+raw_mode_ui    = true   # Connect dialog includes Raw mode checkbox
+doctor_dialog  = true   # Checks all binaries and system deps
+right_click    = true   # Copy / Paste / Select All context menu
 
 # -------------------------
 # Supported OS
