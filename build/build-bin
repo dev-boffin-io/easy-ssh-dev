@@ -41,18 +41,34 @@ declare -A APPS=(
 )
 
 # ==============================
+# DEPENDENCY CHECK
+# ==============================
+need() {
+    command -v "$1" >/dev/null 2>&1 || {
+        echo -e "${RED}❌ $1 not installed.${NC}"
+        exit 1
+    }
+}
+
+need go
+
+# ==============================
 # DETECT ARCH
 # ==============================
 ARCH=$(go env GOARCH)
 echo -e "${BLUE}${BOLD}🚀 Host Architecture: $ARCH${NC}"
 
 # ==============================
-# GO MODULE CHECK
+# GO CACHE CLEAN + MODULE INIT
 # ==============================
-if [[ ! -f "$SRC_DIR/go.mod" ]]; then
-    echo -e "${BLUE}⚙️  Initializing Go module...${NC}"
-    (cd "$SRC_DIR" && go mod init github.com/dev-boffin-io/easy-ssh-dev &>/dev/null && go mod tidy &>/dev/null)
-fi
+echo -e "${CYAN}🧹 Cleaning Go build cache...${NC}"
+go clean -cache
+
+echo -e "${CYAN}🗑  Removing old go.mod / go.sum...${NC}"
+rm -f "$SRC_DIR/go.mod" "$SRC_DIR/go.sum"
+
+echo -e "${BLUE}⚙️  Initializing Go module...${NC}"
+(cd "$SRC_DIR" && go mod init github.com/dev-boffin-io/easy-ssh-dev && go mod tidy)
 
 echo -e "\n${YELLOW}${BOLD}🔨 Starting unified build...${NC}"
 echo -e "${CYAN}📦 Flags: -trimpath -ldflags='-s -w' CGO_ENABLED=0${NC}"
